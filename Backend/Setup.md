@@ -16,18 +16,17 @@ Pastikan tools berikut sudah terinstall di komputer:
   Download versi terbaru sesuai sistem operasi
 - **Git**  
   👉 https://git-scm.com
-- **PostgreSQL**  
-  👉 https://www.postgresql.org/download/  
-  Atau gunakan Docker (opsional)
-- **Code Editor** (Disarankan: VS Code)  
-  👉 https://code.visualstudio.com
+- **Docker Desktop**  
+  👉 https://www.docker.com/products/docker-desktop  
+  Docker akan menjalankan PostgreSQL di container (tidak perlu install PostgreSQL lokal)
 
 Cek instalasi melalui terminal:
 
 ```bash
 go version
 git --version
-psql --version
+docker --version
+docker-compose --version
 ```
 
 ### 2️⃣ Membuka Repository Template
@@ -68,53 +67,115 @@ go mod verify
 
 3. Tunggu hingga proses selesai dan semua package otomatis terdownload.
 
-### 5️⃣ Setup PostgreSQL Database
+### 5️⃣ Setup PostgreSQL dengan Docker
 
-#### A. Cara 1: Install PostgreSQL Langsung
+#### Opsi A: Menggunakan Docker Compose (Recommended)
 
-1. Install PostgreSQL dari link di atas
-2. Buka **pgAdmin** atau **psql** terminal
-3. Buat database baru:
+1. Buat file `docker-compose.yml` di root project:
 
-```sql
-CREATE DATABASE flexoo_academy;
+```yaml
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres-flexoo
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: flexoo_user
+      POSTGRES_PASSWORD: flexoo_password
+      POSTGRES_DB: flexoo_academy
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
 ```
 
-4. Buat user baru (opsional):
-
-```sql
-CREATE USER flexoo_user WITH PASSWORD 'your_password';
-GRANT ALL PRIVILEGES ON DATABASE flexoo_academy TO flexoo_user;
-```
-
-#### B. Cara 2: Menggunakan Docker (Lebih Mudah)
-
-1. Pastikan **Docker Desktop** sudah terinstall:  
-   👉 https://www.docker.com/products/docker-desktop
-
-2. Jalankan PostgreSQL dengan Docker:
+2. Jalankan PostgreSQL:
 
 ```bash
-docker run --name postgres-flexoo -e POSTGRES_USER=flexoo_user -e POSTGRES_PASSWORD=your_password -e POSTGRES_DB=flexoo_academy -p 5432:5432 -d postgres:15
+docker-compose up -d
 ```
 
-3. Cek container berjalan:
+3. Cek status container:
 
 ```bash
-docker ps
+docker-compose ps
 ```
 
-4. Untuk stop container:
+4. Untuk melihat logs:
 
 ```bash
-docker stop postgres-flexoo
+docker-compose logs -f postgres
 ```
 
-5. Untuk start container kembali:
+5. Untuk stop database:
 
 ```bash
+docker-compose down
+```
+
+6. Untuk stop dan hapus data:
+
+```bash
+docker-compose down -v
+```
+
+#### Opsi B: Menggunakan Docker Run (Manual)
+
+Jika tidak ingin menggunakan Docker Compose:
+
+```bash
+docker run --name postgres-flexoo \
+  -e POSTGRES_USER=flexoo_user \
+  -e POSTGRES_PASSWORD=flexoo_password \
+  -e POSTGRES_DB=flexoo_academy \
+  -p 5432:5432 \
+  -v postgres_data:/var/lib/postgresql/data \
+  -d postgres:15-alpine
+```
+
+Perintah management:
+
+```bash
+# Start container
 docker start postgres-flexoo
+
+# Stop container
+docker stop postgres-flexoo
+
+# Restart container
+docker restart postgres-flexoo
+
+# Lihat logs
+docker logs -f postgres-flexoo
+
+# Hapus container (data tetap ada di volume)
+docker rm postgres-flexoo
 ```
+
+#### Akses Database
+
+Untuk akses database menggunakan psql:
+
+```bash
+docker exec -it postgres-flexoo psql -U flexoo_user -d flexoo_academy
+```
+
+Atau gunakan GUI tools seperti:
+- **DBeaver** (Free): https://dbeaver.io
+- **TablePlus**: https://tableplus.com
+- **pgAdmin**: https://www.pgadmin.org
+
+Konfigurasi koneksi:
+- Host: `localhost`
+- Port: `5432`
+- Database: `flexoo_academy`
+- Username: `flexoo_user`
+- Password: `flexoo_password`
 
 ### 6️⃣ Setup Environment (.env)
 
@@ -132,7 +193,7 @@ ENV=development
 DB_HOST=localhost
 DB_PORT=5432
 DB_USER=flexoo_user
-DB_PASSWORD=your_password
+DB_PASSWORD=flexoo_password
 DB_NAME=flexoo_academy
 DB_SSL_MODE=disable
 
@@ -431,28 +492,4 @@ git commit -m "chore: setup bruno api collection"
 git push origin feat/setup-backend
 ```
 
-## Tips & Best Practices
 
-### ✅ Development Workflow
-
-1. **Selalu jalankan migrasi** sebelum coding
-2. **Test endpoint** menggunakan Bruno setelah membuat API baru
-3. **Commit berkala** dengan pesan yang jelas
-4. **Gunakan hot reload** (Air) untuk development lebih cepat
-5. **Validasi input** setiap endpoint untuk keamanan
-
-### ✅ Database Management
-
-1. **Backup database** secara berkala
-2. **Gunakan migration** untuk perubahan schema
-3. **Jangan hardcode** connection string
-4. **Gunakan prepared statements** untuk mencegah SQL injection
-
-### ✅ Security Best Practices
-
-1. **Jangan commit** file .env ke repository
-2. **Gunakan strong password** untuk database
-3. **Rotate JWT secret** secara berkala di production
-4. **Enable CORS** hanya untuk domain yang dipercaya
-5. **Validasi semua input** dari user
-6. **Gunakan HTTPS** di production
