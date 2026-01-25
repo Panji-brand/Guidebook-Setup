@@ -5,7 +5,7 @@
 ## Setup Repository Backend
 
 Template Repository:  
-👉 [https://github.com/Flexoo-Academy/Backend-Template.git](https://github.com/Flexoo-Academy/Golang-Template)
+👉 [https://github.com/Flexoo-Academy/Golang-Template.git](https://github.com/Flexoo-Academy/Golang-Template)
 
 ### 1️⃣ Setup Awal
 
